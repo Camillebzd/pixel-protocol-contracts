@@ -42,6 +42,6 @@ The `PixelProtocol.sol` contains the main API to play the Pixel war.
 
 The contract has a permission system for the important settings and withdraw the fees paid by the users.
 
-### Feedback
+### Feedback
 
 Please open issues or PRs on this repositories for any feedback.
