@@ -45,13 +45,7 @@ contract PixelProtocol is Ownable {
     // =============================================================//
 
     /// @dev Event emitted when a pixel is placed
-    event PixelPlaced(
-        uint256 indexed x,
-        uint256 indexed y,
-        uint24 color,
-        address indexed wallet,
-        uint256 timestamp
-    );
+    event PixelPlaced(uint256 indexed x, uint256 indexed y, uint24 color, address indexed wallet, uint256 timestamp);
 
     // =============================================================//
     //                            ERRORS                            //
@@ -82,12 +76,10 @@ contract PixelProtocol is Ownable {
     /// @return color The color of the pixel (24-bit RGB).
     /// @return wallet The address of the wallet that placed the pixel.
     /// @return timestamp The timestamp when the pixel was placed.
-    function getPixel(
-        uint256 x,
-        uint256 y
-    ) external view returns (uint24 color, address wallet, uint256 timestamp) {
-        if (x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT)
+    function getPixel(uint256 x, uint256 y) external view returns (uint24 color, address wallet, uint256 timestamp) {
+        if (x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
             revert InvalidCoordinates(x, y);
+        }
 
         Pixel memory pixel = canvas[x][y];
         return (pixel.color, pixel.wallet, pixel.timestamp);
@@ -98,7 +90,7 @@ contract PixelProtocol is Ownable {
     // =============================================================//
 
     /// /!\ TESTING ONLY: Set cooldown
-    function setCooldown(uint256 _cooldown) external /** onlyOwner() */ {
+    function setCooldown(uint256 _cooldown) external {
         COOLDOWN = _cooldown;
     }
 
@@ -108,13 +100,10 @@ contract PixelProtocol is Ownable {
     /// @param color The color of the pixel (24-bit RGB).
     /// @dev Emits a PixelPlaced event.
     /// @dev This function allows users to place a pixel for free, but is subject to a cooldown period.
-    function placePixel(
-        uint256 x,
-        uint256 y,
-        uint24 color
-    ) external {
-        if (x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT)
+    function placePixel(uint256 x, uint256 y, uint24 color) external {
+        if (x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
             revert InvalidCoordinates(x, y);
+        }
 
         uint256 lastTime = lastPlacement[msg.sender];
 
@@ -133,13 +122,10 @@ contract PixelProtocol is Ownable {
     /// @dev Emits a PixelPlaced event.
     /// @dev This function allows users to place a pixel by paying 1 USDC, bypassing the cooldown.
     /// Remember to approve the contract to spend USDC before calling this function.
-    function placePixelWithUSDC(
-        uint256 x,
-        uint256 y,
-        uint24 color
-    ) external {
-        if (x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT)
+    function placePixelWithUSDC(uint256 x, uint256 y, uint24 color) external {
+        if (x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
             revert InvalidCoordinates(x, y);
+        }
 
         // Transfer 1 USDC from sender to contract
         bool transfered = usdc.transferFrom(msg.sender, address(this), USDC_FEE);
@@ -153,7 +139,7 @@ contract PixelProtocol is Ownable {
     /// @param to The address to withdraw USDC to.
     /// @param amount The amount of USDC to withdraw.
     /// @dev Only the contract owner can call this function.
-    function withdrawUSDC(address to, uint256 amount) external onlyOwner() {
+    function withdrawUSDC(address to, uint256 amount) external onlyOwner {
         // In MVP, no explicit owner
         require(usdc.transfer(to, amount), "USDC transfer failed");
     }
@@ -164,11 +150,7 @@ contract PixelProtocol is Ownable {
 
     // Internal function to update pixel and emit event
     function _updatePixel(uint256 x, uint256 y, uint24 color) internal {
-        canvas[x][y] = Pixel({
-            color: color,
-            wallet: msg.sender,
-            timestamp: block.timestamp
-        });
+        canvas[x][y] = Pixel({color: color, wallet: msg.sender, timestamp: block.timestamp});
 
         emit PixelPlaced(x, y, color, msg.sender, block.timestamp);
     }

@@ -23,7 +23,9 @@ contract PixelProtocolTest is Test {
         usdc = new USDC(owner);
         pixelProtocol = new PixelProtocol(owner, address(usdc));
 
-        // Mint some USDC for the user
+        // Mint some USDC for the user and owner
+        vm.prank(owner);
+        usdc.mint(owner, 1000 * 1e6); // 1000 USDC (6 decimals)
         vm.prank(owner);
         usdc.mint(user, 1000 * 1e6); // 1000 USDC (6 decimals)
     }
@@ -48,11 +50,7 @@ contract PixelProtocolTest is Test {
         pixelProtocol.placePixel(x, y, color);
 
         // Check if the pixel was placed correctly
-        (
-            uint24 pixelColor,
-            address pixelWallet,
-            uint256 pixelTimestamp
-        ) = pixelProtocol.canvas(x, y);
+        (uint24 pixelColor, address pixelWallet, uint256 pixelTimestamp) = pixelProtocol.canvas(x, y);
         assertEq(pixelColor, color);
         assertEq(pixelWallet, user);
         assertEq(pixelTimestamp, block.timestamp);
@@ -64,13 +62,7 @@ contract PixelProtocolTest is Test {
         uint24 color = 0x00FF00; // Green
 
         // Try to place a pixel with invalid coordinates
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                PixelProtocol.InvalidCoordinates.selector,
-                x,
-                y
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(PixelProtocol.InvalidCoordinates.selector, x, y));
         vm.prank(user);
         pixelProtocol.placePixel(x, y, color);
     }
@@ -88,11 +80,7 @@ contract PixelProtocolTest is Test {
         // Try to place another pixel before cooldown
         skip(60); // Skip 60 seconds
         vm.expectRevert(
-            abi.encodeWithSelector(
-                PixelProtocol.CooldownActive.selector,
-                lastPlacement,
-                pixelProtocol.COOLDOWN()
-            )
+            abi.encodeWithSelector(PixelProtocol.CooldownActive.selector, lastPlacement, pixelProtocol.COOLDOWN())
         );
         vm.prank(user);
         pixelProtocol.placePixel(x, y, color);
@@ -132,9 +120,10 @@ contract PixelProtocolTest is Test {
         assertEq(usdc.balanceOf(address(pixelProtocol)), fee);
 
         // Withdraw USDC fee
+        uint256 ownerBalance = usdc.balanceOf(owner);
         vm.prank(owner);
         pixelProtocol.withdrawUSDC(owner, fee);
-        assertEq(usdc.balanceOf(owner), fee);
+        assertEq(usdc.balanceOf(owner), ownerBalance + fee);
     }
 
     function testUSDCTransferFailed() public {
@@ -146,5 +135,43 @@ contract PixelProtocolTest is Test {
         vm.expectRevert();
         vm.prank(user);
         pixelProtocol.placePixelWithUSDC(x, y, color);
+    }
+
+    function testWithdrawUSDC() public {
+        uint256 amount = 5 * 1e6; // 5 USDC
+        uint256 initialBalance = usdc.balanceOf(owner);
+
+        vm.prank(owner);
+        usdc.transfer(address(pixelProtocol), amount);
+
+        assertEq(usdc.balanceOf(address(pixelProtocol)), amount);
+        assertEq(usdc.balanceOf(owner), initialBalance - amount);
+
+        // Withdraw USDC
+        vm.prank(owner);
+        pixelProtocol.withdrawUSDC(owner, amount);
+
+        // Check balances
+        assertEq(usdc.balanceOf(owner), initialBalance);
+        assertEq(usdc.balanceOf(address(pixelProtocol)), 0);
+    }
+
+    function testWithdrawUSDCUnauthorized() public {
+        uint256 amount = 5 * 1e6; // 5 USDC
+        uint256 initialBalance = usdc.balanceOf(owner);
+
+        vm.prank(owner);
+        usdc.transfer(address(pixelProtocol), amount);
+
+        assertEq(usdc.balanceOf(address(pixelProtocol)), amount);
+        assertEq(usdc.balanceOf(owner), initialBalance - amount);
+
+        // Try to withdraw USDC as a non-owner
+        vm.expectRevert();
+        vm.prank(user);
+        pixelProtocol.withdrawUSDC(user, amount);
+
+        // Check balances remain unchanged
+        assertEq(usdc.balanceOf(address(pixelProtocol)), amount);
     }
 }

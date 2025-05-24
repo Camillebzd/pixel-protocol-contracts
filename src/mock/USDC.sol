@@ -6,20 +6,13 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract USDC is ERC20, Ownable, ERC20Permit {
-    constructor(
-        address initialOwner
-    ) ERC20("USD Coin", "USDC") Ownable(initialOwner) ERC20Permit("USD Coin") {}
+    constructor(address initialOwner) ERC20("USD Coin", "USDC") Ownable(initialOwner) ERC20Permit("USD Coin") {}
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
 
-    function decimals()
-        public
-        pure
-        override(ERC20)
-        returns (uint8)
-    {
+    function decimals() public pure override(ERC20) returns (uint8) {
         return 6;
     }
 }
